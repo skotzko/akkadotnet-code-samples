@@ -11,8 +11,8 @@ namespace TestKitSample.Examples
 
         #region Messages
         public class CreateUser { }
-        public class ValidUserInfo : CreateUser { }
-        public class InvalidUserInfo : CreateUser { }
+        public class CreateUserWithValidUserInfo : CreateUser { }
+        public class CreateUserWithInvalidUserInfo : CreateUser { }
         public class IndexUsers { }
 
         public class OperationResult
@@ -23,13 +23,13 @@ namespace TestKitSample.Examples
 
         public UserIdentityActor()
         {
-            Receive<ValidUserInfo>(create =>
+            Receive<CreateUserWithValidUserInfo>(create =>
             {
                 // create user here
                 Sender.Tell(new OperationResult() { Successful = true });
             });
 
-            Receive<InvalidUserInfo>(create =>
+            Receive<CreateUserWithInvalidUserInfo>(create =>
             {
                 // fail to create user here
                 Sender.Tell(new OperationResult());
@@ -57,7 +57,7 @@ namespace TestKitSample.Examples
         [Test]
         public void Identity_actor_should_confirm_user_creation_success()
         {
-            _identity.Tell(new UserIdentityActor.ValidUserInfo());
+            _identity.Tell(new UserIdentityActor.CreateUserWithValidUserInfo());
             var result = ExpectMsg<UserIdentityActor.OperationResult>().Successful;
             Assert.True(result);
         }
@@ -65,7 +65,7 @@ namespace TestKitSample.Examples
         [Test]
         public void Identity_actor_should_confirm_user_creation_failure()
         {
-            _identity.Tell(new UserIdentityActor.InvalidUserInfo());
+            _identity.Tell(new UserIdentityActor.CreateUserWithInvalidUserInfo());
             var result = ExpectMsg<UserIdentityActor.OperationResult>().Successful;
             Assert.False(result);
         }
