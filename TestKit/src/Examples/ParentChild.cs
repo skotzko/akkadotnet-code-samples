@@ -22,7 +22,7 @@ namespace TestKitSample.Examples
         public void Parent_greeter_should_greet_parent()
         {
             Props greeterProps = Props.Create(() => new ParentGreeter());
-            // make greeter actor as child of TestActor
+            // make greeter actor a child of TestActor
             var greeter = ActorOfAsTestActorRef<ParentGreeter>(greeterProps, TestActor);
             greeter.Tell("greet parent");
 

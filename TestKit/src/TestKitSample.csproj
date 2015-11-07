@@ -64,6 +64,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Examples\Basics.cs" />
+    <Compile Include="Examples\Blackhole.cs" />
+    <Compile Include="Examples\Logging.cs" />
     <Compile Include="Examples\ParentChild.cs" />
     <Compile Include="Examples\Timing.cs" />
     <Compile Include="Program.cs" />
