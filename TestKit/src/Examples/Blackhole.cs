@@ -1,6 +1,7 @@
 ﻿using System;
+using System.Threading;
 using Akka.Actor;
-using Akka.TestKit;
+using Akka.Event;
 using Akka.TestKit.NUnit;
 using Akka.TestKit.TestActors;
 using NUnit.Framework;
@@ -8,13 +9,14 @@ using NUnit.Framework;
 namespace TestKitSample.Examples
 {
     #region Messages
+
     public class CreateUser { }
 
     public class UserResult
     {
         public bool Successful { get; }
 
-        public UserResult() : this(false) {}
+        public UserResult() : this(false) { }
 
         public UserResult(bool successful)
         {
@@ -31,10 +33,15 @@ namespace TestKitSample.Examples
     public class IdentityManagerActor : ReceiveActor
     {
         private readonly IActorRef _authenticator;
+        private readonly TimeSpan _timeout;
 
-        public IdentityManagerActor(IActorRef authenticationActor)
+        public IdentityManagerActor(IActorRef authenticationActor) : this(authenticationActor, TimeSpan.FromSeconds(2)) { }
+
+        public IdentityManagerActor(IActorRef authenticationActor, TimeSpan timeout)
         {
             _authenticator = authenticationActor;
+            _timeout = timeout;
+
 
             Receive<CreateUser>(create =>
             {
@@ -46,7 +53,7 @@ namespace TestKitSample.Examples
                 // this actor needs it create user request to be authenticated
                 // within 2 seconds or this operation times out & cancels 
                 // the Task returned by Ask<>
-                _authenticator.Ask<UserResult>(create, TimeSpan.FromSeconds(2))
+                _authenticator.Ask<UserResult>(create, _timeout)
                     .ContinueWith(tr =>
                     {
                         // if the task got messed up / failed, return failure result
@@ -66,13 +73,28 @@ namespace TestKitSample.Examples
     /// </summary>
     public class AuthenticationActor : ReceiveActor
     {
-        public AuthenticationActor()
+        private readonly TimeSpan _delay;
+        public bool Successful { get; }
+        public int UsersCreated { get; private set; }
+        private ILoggingAdapter _log = Context.GetLogger();
+
+        public AuthenticationActor() : this(TimeSpan.Zero, false) { }
+
+        public AuthenticationActor(bool successOverride) : this(TimeSpan.Zero, successOverride) { }
+
+        public AuthenticationActor(TimeSpan delay, bool? successOverride = null)
         {
+            _delay = delay;
+            Successful = successOverride ?? new Random().NextDouble() > 0.5;
+
             Receive<CreateUser>(create =>
             {
-                // arbitrary because why not
-                var successful = new Random().NextDouble() > 0.5;
-                Sender.Tell(new UserResult(successful));
+                Thread.Sleep(_delay);
+                Sender.Tell(new UserResult(Successful));
+                if (Successful)
+                    UsersCreated++;
+
+                _log.Info($"Count of users created: {UsersCreated}");
             });
         }
     }
@@ -86,11 +108,66 @@ namespace TestKitSample.Examples
             // the BlackHoleActor will NEVER respond to any message sent to it
             // which will force the CreateUser request to time out
             var blackhole = Sys.ActorOf(BlackHoleActor.Props);
-            var identity = Sys.ActorOf(Props.Create(() => new IdentityManagerActor(blackhole)));
+            var identity = Sys.ActorOf(Props.Create(() => new IdentityManagerActor(blackhole, TimeSpan.FromSeconds(2))));
 
             identity.Tell(new CreateUser());
-            var result = ExpectMsg<UserResult>().Successful;            
+            var result = ExpectMsg<UserResult>().Successful;
             Assert.False(result);
         }
+
+        [Test]
+        public void IdentityManagerActor_should_fail_create_user_on_failed_UserResult()
+        {
+            // make an AuthenticationActor that will always fail to create users
+            // by using the constructor argument (normal and PREFERRED approach)
+            var authProps = Props.Create(() => new AuthenticationActor(false));
+            var auth = Sys.ActorOf(authProps);
+
+            var identityProps = Props.Create(() => new IdentityManagerActor(auth));
+            var identity = Sys.ActorOf(identityProps);
+
+            identity.Tell(new CreateUser());
+            var result = ExpectMsg<UserResult>().Successful;
+            Assert.False(result);
+        }
+
+        [Test]
+        public void AuthenticationActor_should_keep_internal_count_of_users_created()
+        {
+            // In this case, we're setting up a ActorOfAsTestActorRef
+            // to be able to directly access the internal state of the actor.
+            // Generally, THIS IS NOT RECOMMENDED as you want to test the actor
+            // from the outside, as it will be used in reality.In real use,
+            // actors can't access each others internal state.
+
+            // make an AuthenticationActor that will always successfully create users
+            var authProps = Props.Create(() => new AuthenticationActor(true));
+            var auth = ActorOfAsTestActorRef<AuthenticationActor>(authProps);
+
+            // ACCESSING INTERNAL ACTOR STATE
+            // assert that actor will always return successful ops
+            Assert.True(auth.UnderlyingActor.Successful);
+
+            var identityProps = Props.Create(() => new IdentityManagerActor(auth));
+            var identity = Sys.ActorOf(identityProps);
+
+            // ACCESSING INTERNAL ACTOR STATE
+            // assert that auth user has not created any users
+            Assert.AreEqual(auth.UnderlyingActor.UsersCreated, 0);
+
+            // create some users
+            var usersToCreate = 4;
+            for (int i = 0; i < usersToCreate; i++)
+            {
+                identity.Tell(new CreateUser());
+                var result = ExpectMsg<UserResult>().Successful;
+                Assert.True(result);
+            }
+
+            // ACCESSING INTERNAL ACTOR STATE
+            // assert that count has been kept, and is correct
+            Assert.AreEqual(auth.UnderlyingActor.UsersCreated, usersToCreate);
+        }
+
     }
 }

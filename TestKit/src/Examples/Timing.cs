@@ -11,7 +11,6 @@ namespace TestKitSample.Examples
     {
         public class TimeConstrainedActor : ReceiveActor
         {
-            private ILoggingAdapter _log = Context.GetLogger();
             private readonly int _delay;
 
             public TimeConstrainedActor() : this(0) { }
