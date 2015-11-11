@@ -11,7 +11,7 @@ namespace TestKitSample.Examples
     public class ValidData : NormalOperation { }
     #endregion
 
-    class LoggingActor : ReceiveActor
+    public class LoggingActor : ReceiveActor
     {
         private ILoggingAdapter _log = Context.GetLogger();
 
@@ -34,15 +34,16 @@ namespace TestKitSample.Examples
     [TestFixture]
     public class LoggingActorSpecs : TestKit
     {
-        private readonly IActorRef _logger;
+        private IActorRef _logger;
 
-        public LoggingActorSpecs()
+        [SetUp]
+        public void Setup()
         {
             _logger = Sys.ActorOf(Props.Create(() => new LoggingActor()));
         }
 
         [Test]
-        public void Logging_actor_should_log_info_message_on_valid_operation()
+        public void LoggingActor_should_log_info_message_on_valid_operation()
         {
             // listen for specific INFO log message that valid data op should trigger
             // by default, this looks for an exact match on the data passed in
@@ -50,7 +51,11 @@ namespace TestKitSample.Examples
             {
                 _logger.Tell(new ValidData());
             });
+        }
 
+        [Test]
+        public void LoggingActor_should_log_info_message_on_valid_operation_2()
+        {
             // doing same thing, but checking for messages that contain this instead
             EventFilter.Info(contains: "completed").ExpectOne(() =>
             {
@@ -59,7 +64,7 @@ namespace TestKitSample.Examples
         }
 
         [Test]
-        public void Logging_actor_should_log_no_errors_on_valid_operation()
+        public void LoggingActor_should_log_no_errors_on_valid_operation()
         {
             // we expect zero error messages
             EventFilter.Error().Expect(0, () =>
@@ -69,11 +74,11 @@ namespace TestKitSample.Examples
         }
 
         [Test]
-        public void Logging_actor_should_log_one_error_on_invalid_operation()
+        public void LoggingActor_should_log_error_on_invalid_operation()
         {
             // we expect one error message, but we're not specifying
             // the content of the error message we expect (just that one happens)
-            EventFilter.Error().ExpectOne(() =>
+            EventFilter.Error("Could not complete operation! Data is invalid.").ExpectOne(() =>
             {
                 _logger.Tell(new InvalidData());
             });

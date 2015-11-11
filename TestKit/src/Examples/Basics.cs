@@ -7,7 +7,7 @@ namespace TestKitSample.Examples
 {
     class UserIdentityActor : ReceiveActor
     {
-        private ILoggingAdapter _log = Context.GetLogger();
+        private readonly ILoggingAdapter _log = Context.GetLogger();
 
         #region Messages
         public class CreateUser { }
@@ -26,13 +26,13 @@ namespace TestKitSample.Examples
             Receive<CreateUserWithValidUserInfo>(create =>
             {
                 // create user here
-                Sender.Tell(new OperationResult() { Successful = true });
+                Sender.Tell(new OperationResult { Successful = true });
             });
 
             Receive<CreateUserWithInvalidUserInfo>(create =>
             {
                 // fail to create user here
-                Sender.Tell(new OperationResult());
+                Sender.Tell(new OperationResult { Successful = false });
             });
 
             Receive<IndexUsers>(index =>
@@ -47,15 +47,16 @@ namespace TestKitSample.Examples
     [TestFixture]
     public class UserIdentitySpecs : TestKit
     {
-        private readonly IActorRef _identity;
+        private IActorRef _identity;
 
-        public UserIdentitySpecs()
+        [SetUp]
+        public void Setup()
         {
             _identity = Sys.ActorOf(Props.Create(() => new UserIdentityActor()));
         }
 
         [Test]
-        public void Identity_actor_should_confirm_user_creation_success()
+        public void UserIdentityActor_should_confirm_user_creation_success()
         {
             _identity.Tell(new UserIdentityActor.CreateUserWithValidUserInfo());
             var result = ExpectMsg<UserIdentityActor.OperationResult>().Successful;
@@ -63,7 +64,7 @@ namespace TestKitSample.Examples
         }
 
         [Test]
-        public void Identity_actor_should_confirm_user_creation_failure()
+        public void UserIdentityActor_should_confirm_user_creation_failure()
         {
             _identity.Tell(new UserIdentityActor.CreateUserWithInvalidUserInfo());
             var result = ExpectMsg<UserIdentityActor.OperationResult>().Successful;
@@ -71,14 +72,14 @@ namespace TestKitSample.Examples
         }
 
         [Test]
-        public void Identity_actor_should_not_respond_to_index_messages()
+        public void UserIdentityActor_should_not_respond_to_index_messages()
         {
             _identity.Tell(new UserIdentityActor.IndexUsers());
             ExpectNoMsg();
         }
 
         [Test]
-        public void Identity_actor_should_log_user_indexing_operation()
+        public void UserIdentityActor_should_log_user_indexing_operation()
         {
             EventFilter.Info("indexing users").ExpectOne(() =>
             {

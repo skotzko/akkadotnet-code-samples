@@ -46,7 +46,6 @@ namespace TestKitSample.Examples
             _authenticator = authenticationActor;
             _timeout = timeout;
 
-
             Receive<CreateUser>(create =>
             {
                 // since we're using the PipeTo pattern, we need to close over state
@@ -153,7 +152,6 @@ namespace TestKitSample.Examples
         [TestCase(4, 3)]
         public void AuthenticationActor_should_verify_its_ready_within_max_time(int maxSeconds, int authDelaySeconds)
         {
-
             // create auth actor with 5 second delay built in
             var authProps = Props.Create(() => new AuthenticationActor(TimeSpan.FromSeconds(authDelaySeconds)));
             var auth = Sys.ActorOf(authProps);
@@ -165,7 +163,7 @@ namespace TestKitSample.Examples
             // initialize the AuthenticationActor (with delay)
             auth.Tell(new GetReady());
 
-            // poll every 250ms until AuthenticationActor says it's ready or we time out
+            // poll every 250ms until AuthenticationActor says it's ready (or we time out)
             AwaitAssert(() =>
             {
                 auth.Tell(new CheckIfReady());
