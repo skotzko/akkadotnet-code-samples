@@ -12,6 +12,10 @@ namespace TestKitSample.Examples
 
     public class CreateUser { }
 
+    public class CheckIfReady { }
+
+    public class GetReady { }
+
     public class UserResult
     {
         public bool Successful { get; }
@@ -76,9 +80,12 @@ namespace TestKitSample.Examples
         private readonly TimeSpan _delay;
         public bool Successful { get; }
         public int UsersCreated { get; private set; }
+        private bool _ready;
         private ILoggingAdapter _log = Context.GetLogger();
 
         public AuthenticationActor() : this(TimeSpan.Zero, false) { }
+
+        public AuthenticationActor(TimeSpan delay) : this(delay, false) { }
 
         public AuthenticationActor(bool successOverride) : this(TimeSpan.Zero, successOverride) { }
 
@@ -95,6 +102,17 @@ namespace TestKitSample.Examples
                     UsersCreated++;
 
                 _log.Info($"Count of users created: {UsersCreated}");
+            });
+
+            Receive<CheckIfReady>(check =>
+            {
+                Sender.Tell(_ready);
+            });
+
+            Receive<GetReady>(ready =>
+            {
+                Thread.Sleep(_delay);
+                _ready = true;
             });
         }
     }
@@ -129,6 +147,30 @@ namespace TestKitSample.Examples
             identity.Tell(new CreateUser());
             var result = ExpectMsg<UserResult>().Successful;
             Assert.False(result);
+        }
+
+        [TestCase(3, 2)]
+        [TestCase(4, 3)]
+        public void AuthenticationActor_should_verify_its_ready_within_max_time(int maxSeconds, int authDelaySeconds)
+        {
+
+            // create auth actor with 5 second delay built in
+            var authProps = Props.Create(() => new AuthenticationActor(TimeSpan.FromSeconds(authDelaySeconds)));
+            var auth = Sys.ActorOf(authProps);
+
+            // assert that not ready
+            auth.Tell(new CheckIfReady());
+            ExpectMsg(false);
+
+            // initialize the AuthenticationActor (with delay)
+            auth.Tell(new GetReady());
+
+            // poll every 250ms until AuthenticationActor says it's ready or we time out
+            AwaitAssert(() =>
+            {
+                auth.Tell(new CheckIfReady());
+                ExpectMsg(true);
+            }, TimeSpan.FromSeconds(maxSeconds), TimeSpan.FromMilliseconds(250));
         }
 
         [Test]
