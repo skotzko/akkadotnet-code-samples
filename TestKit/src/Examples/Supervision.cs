@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.Remoting.Messaging;
 using Akka.Actor;
 using Akka.Event;
 using Akka.TestKit.NUnit;
-using Akka.Util.Internal;
 using NUnit.Framework;
-using TestKitSample.Examples;
 
 namespace TestKitSample.Examples
 {

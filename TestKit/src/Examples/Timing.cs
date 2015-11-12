@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading;
 using Akka.Actor;
-using Akka.Event;
 using Akka.TestKit.NUnit;
 using NUnit.Framework;
 

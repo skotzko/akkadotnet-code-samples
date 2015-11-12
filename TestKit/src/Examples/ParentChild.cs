@@ -1,5 +1,4 @@
 ﻿using Akka.Actor;
-using Akka.Event;
 using NUnit.Framework;
 using Akka.TestKit.NUnit;
 
