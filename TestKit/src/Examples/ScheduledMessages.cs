@@ -65,11 +65,13 @@ namespace TestKitSample.Examples
         public class ScheduledMessageActorSpecs : TestKit
         {
             /// <summary>
-            /// TestFixture with virtual time scheduler turned on so we can jump forward in time!
+            /// TestFixture with virtual time <see cref="TestScheduler"/> turned on so we can jump forward in time!
             /// </summary>
             public ScheduledMessageActorSpecs() : base(@"akka.scheduler.implementation = ""Akka.TestKit.TestScheduler, Akka.TestKit""") { }
 
-            // must cast the TestActorSystem scheduler to be a TestScheduler
+            /// <summary>
+            /// Cast the TestActorSystem scheduler to be a TestScheduler
+            /// </summary>
             private TestScheduler Scheduler => (TestScheduler)Sys.Scheduler;
 
             [Test]
