@@ -1,17 +1,24 @@
 ﻿using Akka.Actor;
+using Akka.Event;
 using NUnit.Framework;
 using Akka.TestKit.NUnit;
 
 namespace TestKitSample.Examples
 {
-    public class ParentGreeter : ReceiveActor
+    public class ChildActor : ReceiveActor
     {
-        public ParentGreeter()
+        public ChildActor()
         {
-            Receive<string>(s => string.Equals(s, "greet parent"), s =>
-            {
-                Context.Parent.Tell("Hello parent!");
-            });
+            ReceiveAny(o => Sender.Tell("hello!"));
+        }
+    }
+
+    public class ParentActor : ReceiveActor
+    {
+        public ParentActor()
+        {
+            var child = Context.ActorOf(Props.Create(() => new ChildActor()));
+            ReceiveAny(o => child.Forward(o));
         }
     }
 
@@ -19,15 +26,14 @@ namespace TestKitSample.Examples
     public class ParentGreeterSpecs : TestKit
     {
         [Test]
-        public void Parent_greeter_should_greet_parent()
+        public void Parent_should_create_child()
         {
-            Props greeterProps = Props.Create(() => new ParentGreeter());
-            // make greeter actor a child of TestActor
-            var greeter = ActorOfAsTestActorRef<ParentGreeter>(greeterProps, TestActor);
-            greeter.Tell("greet parent");
-
-            // TestActor captured any message that came back
-            ExpectMsg("Hello parent!");
+            // verify child has been created by sending parent a message
+            // that is forwarded to child, and which child replies to sender with
+            var parentProps = Props.Create(() => new ParentActor());
+            var parent = ActorOfAsTestActorRef<ParentActor>(parentProps, TestActor);
+            parent.Tell("this should be forwarded to the child");
+            ExpectMsg("hello!");
         }
     }
 }

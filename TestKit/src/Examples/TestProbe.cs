@@ -129,7 +129,7 @@ namespace TestKitSample.Examples
         }
 
         [TestFixture]
-        public class TestProbeThingerSpecs : TestKit
+        public class TestProbeSpecs : TestKit
         {
             private readonly Fake<User> _fakeUser = new Fake<User>();
 

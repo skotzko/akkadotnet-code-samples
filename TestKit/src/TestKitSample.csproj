@@ -71,8 +71,12 @@
   <ItemGroup>
     <Compile Include="Examples\Basics.cs" />
     <Compile Include="Examples\Blackhole.cs" />
+    <Compile Include="Examples\HOCON.cs" />
+    <Compile Include="Examples\Lifecycle.cs" />
     <Compile Include="Examples\Logging.cs" />
     <Compile Include="Examples\ParentChild.cs" />
+    <Compile Include="Examples\ScheduledMessages.cs" />
+    <Compile Include="Examples\Supervision.cs" />
     <Compile Include="Examples\Timing.cs" />
     <Compile Include="Examples\TestProbe.cs" />
     <Compile Include="Examples\Watch.cs" />
